@@ -1,0 +1,23 @@
+Algorithm: Concorde_Branch_and_Cut
+Inputs: Set of cities, Distance matrix
+Output: Optimal TSP tour
+
+1. Generate initial tour using Chained Lin-Kernighan (LKH) heuristic
+2. Initialize Lower Bound (LB) = -infinity, Upper Bound (UB) = cost(Initial Tour)
+3. Initialize LP relaxation with subtour elimination constraints
+4. Push initial problem node onto Priority Queue
+
+5. While Queue is not empty:
+    a. Pop subproblem node (active LP relaxation)
+    b. Solve LP relaxation
+    c. If infeasible or LB >= UB, prune node and continue
+    d. If LP solution is integer (valid tour):
+        If cost(tour) < UB:
+            Update UB = cost(tour), Best Tour = current tour
+        Continue
+    
+    e. Generate cutting planes (e.g., Gomory, Blossom) to tighten LP
+    f. If new cuts found, add to LP and go to 5b
+    g. Branch on fractional variable (create new child nodes in Queue)
+
+6. Return Best Tour and UB
