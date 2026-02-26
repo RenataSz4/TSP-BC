@@ -1,0 +1,81 @@
+Algorithm: Concorde_Branch_and_Cut
+Inputs: Set of cities, Distance matrix
+Output: Optimal TSP tour
+
+1. Generate initial tour using Chained Lin-Kernighan (LKH) heuristic
+2. Initialize Lower Bound (LB) = -infinity, Upper Bound (UB) = cost(Initial Tour)
+3. Initialize LP relaxation with subtour elimination constraints
+4. Push initial problem node onto Priority Queue
+
+5. While Queue is not empty:
+    a. Pop subproblem node (active LP relaxation)
+    b. Solve LP relaxation
+    c. If infeasible or LB >= UB, prune node and continue
+    d. If LP solution is integer (valid tour):
+        If cost(tour) < UB:
+            Update UB = cost(tour), Best Tour = current tour
+        Continue
+    
+    e. Generate cutting planes (e.g., Gomory, Blossom) to tighten LP
+    f. If new cuts found, add to LP and go to 5b
+    g. Branch on fractional variable (create new child nodes in Queue)
+
+6. Return Best Tour and UB
+
+
+
+# --------------------------------------------------------------------------------------------------------------- #
+
+
+
+# --- INITIALIZATION ---
+1. Run LKH Heuristic:
+    - Set global_ub = cost(LKH_tour)
+    - Set best_tour = LKH_tour
+
+2. Root Node Setup:
+    - Create an empty list for fixed_edges and forbidden_edges.
+    - Solve the initial LP relaxation (Degree constraints only).
+    - Set initial_lb = result of LP solve.
+    - Push (initial_lb, [], []) onto the Priority Queue.
+
+# --- MAIN BRANCH AND CUT LOOP ---
+3. While queue is NOT empty:
+    a. Pop node with the smallest local_lb.
+    
+    b. If node.local_lb >= global_ub:
+       - Continue (Prune: this branch is already worse than our best tour).
+
+    # --- THE CUT LOOP (Refining the Node) ---
+    c. While True:
+        - Solve LP using (Standard Constraints + Node's Fixed/Forbidden + Existing Cuts).
+        - current_lp_val = LP Objective Value.
+        
+        - If current_lp_val >= global_ub: 
+            Break inner loop (Prune this node).
+
+        - Find Subtours in current LP solution:
+            - If subtours exist:
+                - Add Subtour Elimination Constraints (SECs) to this specific LP.
+                - Re-solve (Loop back to 3c).
+            - Else:
+                - Break inner loop (Node is as refined as possible).
+
+    # --- EVALUATION AND BRANCHING ---
+    d. If current LP solution is Integer (all edges are 0 or 1):
+        - If current_lp_val < global_ub:
+            - Update global_ub = current_lp_val
+            - Update best_tour = current edges
+            
+    e. Else (Solution is still fractional):
+        - Select an edge (i, j) with a value closest to 0.5 (Branching Decision).
+        
+        - Create Child Node A:
+            - fixed_edges = parent.fixed + [(i, j)]
+            - Push (current_lp_val, new_fixed, parent.forbidden) to Queue.
+            
+        - Create Child Node B:
+            - forbidden_edges = parent.forbidden + [(i, j)]
+            - Push (current_lp_val, parent.fixed, new_forbidden) to Queue.
+
+4. Return best_tour and global_ub
